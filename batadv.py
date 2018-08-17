@@ -22,7 +22,6 @@ BATADV_TVLV_TYPES['Multicast'] = 0x06
 
 # TODO: remove "pad" field
 # TODO: default type of Tvlv packet?
-# TODO: solve flags better?
 # TODO: types?
 # TODO: ukn field?
 
@@ -69,7 +68,7 @@ class BatAdvTvlvTTVLAN(_FinishedPacket):
 class BatadvTvlvTTEntry(_FinishedPacket):
     name = 'TT Entry'
     fields_desc=[
-        XByteField('flags', 0),
+        FlagsField('flags', 0x0, 8, 'DRUUWIUU'), # U means unused
         BitField('pad', 0, 24),
         MACField('addr', ETHER_ANY),
         XShortField('vid', 0)
@@ -80,7 +79,7 @@ class BatAdvTvlvTT(BatAdvTvlv):
     type = BATADV_TVLV_TYPES['TT']
     fields_desc = [
         _BatAdvTvlvHDR,
-        XByteField('flags', 0),
+        FlagsField('flags', 0, 8, ['QT_DIFF','','','','FT','','','']),
         ByteField('ttvn', 0),
         BitFieldLenField('vlanCount', None, 16, count_of='vlans'),
         PacketListField('vlans', [], BatAdvTvlvTTVLAN,
@@ -95,7 +94,8 @@ class BatAdvOGM(_FinishedPacket):
         ByteEnumField('type', 'IV_OGM', BATADV_PACKET_TYPES),
         ByteField('version', 15),
         ByteField('ttl', 64),
-        XByteField('flags', 0x00),
+        FlagsField('flags', 0x00, 8, ['NOT_BEST_NEXT_HOP',
+            'PRIMARIES_FIRST_HOP', 'DIRECT_LINK'] + ['']*5),
         IntField('seq', 0),
         MACField('originator', ETHER_ANY),
         MACField('rcvFrom', ETHER_ANY),
