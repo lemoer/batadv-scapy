@@ -5,13 +5,6 @@ from scapy.fields import *
 from scapy.all import *
 
 
-class Disney(Packet):
-    name = "DisneyPacket "
-    fields_desc=[ ShortField("mickey",5),
-                 XByteField("minnie",3) ,
-                 IntEnumField("donald" , 1 ,
-                      { 1: "happy", 2: "cool" , 3: "angry" } ) ]
-
 BATADV_PACKET_TYPES = {}
 BATADV_PACKET_TYPES['IV_OGM'] = 0
 
@@ -21,7 +14,6 @@ BATADV_TVLV_TYPES['TT'] = 0x04
 BATADV_TVLV_TYPES['Multicast'] = 0x06
 
 # TODO: remove "pad" field
-# TODO: default type of Tvlv packet?
 # TODO: types?
 # TODO: ukn field?
 
