@@ -102,16 +102,26 @@ class BatAdv(Packet):
         PacketListField('container', [], BatAdvOGM)
     ]
 
-
 bind_layers(Ether, BatAdv, type=0x4305)
 
-packets = rdpcap('test.pcap')
-packets2 = rdpcap('test2.pcap')
 
-p = packets[0]
-p2 = packets2[0]
+if __name__ == '__main__':
 
-p.show2()
+    packets = rdpcap('test.pcap')
 
+    p = packets[0]
+    p2 = packets[1]
 
-p2[BatAdv].container[4].show()
+    print('PACKET 1:')
+    print('---------')
+    print()
+
+    p.show2()
+
+    print()
+    print()
+    print('4TH OGM IN PACKET 2:')
+    print('--------------------')
+    print()
+
+    p2[BatAdv].container[4].show()
