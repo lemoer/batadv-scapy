@@ -7,6 +7,7 @@ from scapy.all import *
 
 BATADV_PACKET_TYPES = {}
 BATADV_PACKET_TYPES['IV_OGM'] = 0
+BATADV_PACKET_TYPES['UNICAST_TVLV'] = 68
 
 BATADV_TVLV_TYPES = {}
 BATADV_TVLV_TYPES['DAT'] = 0x02
@@ -80,12 +81,40 @@ class BatAdvTvlvTT(BatAdvTvlv):
             length_from=lambda pkt: pkt.length-pkt.vlanCount*8-4)
         ]
 
-class BatAdvOGM(_FinishedPacket):
-    name = 'OGM'
-    fields_desc=[
+class _BatAdvFrameHdr(Packet):
+    fields_desc = [
         ByteEnumField('type', 'IV_OGM', BATADV_PACKET_TYPES),
         ByteField('version', 15),
-        ByteField('ttl', 64),
+        ByteField('ttl', 64)
+    ]
+
+
+class BatAdvFrame(_FinishedPacket):
+    name = 'BATADV TVLV Packet'
+    type = BATADV_PACKET_TYPES['IV_OGM']
+    fields_desc = [
+        _BatAdvFrameHdr,
+        StrLenField("value", "", length_from=lambda pkt:pkt.length)]
+
+    registered_ip_options = {}
+
+    @classmethod
+    def register_variant(cls):
+        cls.registered_ip_options[cls.type.default] = cls
+
+    @classmethod
+    def dispatch_hook(cls, pkt=None, *args, **kargs):
+        if pkt:
+            opt = orb(pkt[0])
+            if opt in cls.registered_ip_options:
+                return cls.registered_ip_options[opt]
+        return cls
+
+class BatAdvOGM(BatAdvFrame):
+    name = 'OGM IV'
+    type = BATADV_PACKET_TYPES['IV_OGM']
+    fields_desc=[
+        _BatAdvFrameHdr,
         FlagsField('flags', 0x00, 8, ['NOT_BEST_NEXT_HOP',
             'PRIMARIES_FIRST_HOP', 'DIRECT_LINK'] + ['']*5),
         IntField('seq', 0),
@@ -96,10 +125,22 @@ class BatAdvOGM(_FinishedPacket):
         FieldLenField('tvlvLen', None, length_of='tvlvs'),
         PacketListField("tvlvs", [], BatAdvTvlv, length_from=lambda p:p.tvlvLen)]
 
+class BatAdvUnicastTvlv(BatAdvFrame):
+    name = 'Unicast TVLV'
+    type = BATADV_PACKET_TYPES['UNICAST_TVLV']
+    fields_desc=[
+        _BatAdvFrameHdr,
+        ByteField('pad', 0),
+        MACField('dst', ETHER_ANY),
+        MACField('src', ETHER_ANY),
+        BitFieldLenField('tvlvLen', None, 16, length_of='tvlvs'),
+        ShortField('pad', 0),
+        PacketListField("tvlvs", [], BatAdvTvlv, length_from=lambda p:p.tvlvLen)]
+
 class BatAdv(Packet):
     name = 'BatAdv Packet'
     fields_desc=[
-        PacketListField('container', [], BatAdvOGM)
+        PacketListField('container', [], BatAdvFrame)
     ]
 
 bind_layers(Ether, BatAdv, type=0x4305)
@@ -111,6 +152,7 @@ if __name__ == '__main__':
 
     p = packets[0]
     p2 = packets[1]
+    p3 = packets[1]
 
     print('PACKET 1:')
     print('---------')
@@ -120,8 +162,16 @@ if __name__ == '__main__':
 
     print()
     print()
-    print('4TH OGM IN PACKET 2:')
+    print('PACKET 2:')
+    print('---------')
+    print()
+
+    p2.show2()
+
+    print()
+    print()
+    print('4TH OGM IN PACKET 3:')
     print('--------------------')
     print()
 
-    p2[BatAdv].container[4].show()
+    p3[BatAdv].container[4].show()
